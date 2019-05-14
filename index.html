@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        #results {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .item {
+            position: relative;
+            margin: 10px;
+            border: 1px solid black;
+            box-sizing: border-box;
+            width: 400px;
+        }
+
+        .item:hover {
+            cursor: pointer;
+        }
+
+        .item img {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <form onsubmit="return searchButton()">
+        <input type="text" id="term">
+        <input type="submit" value="Search"></input>
+    </form>
+    <div id="results"></div>
+    <script src="fuse.js"></script>
+    <script>
+        const g = {
+            videos: []
+        };
+
+        main();
+
+        function searchButton() {
+            const term = document.querySelector("#term").value.trim();
+
+            searchVideo(term);
+
+            return false;
+        }
+
+        function goTo(el, service) {
+            const item = el.parentElement.parentElement;
+            const name = item.querySelector(".name").innerText;
+            const id = name.split(" ")[0];
+
+            let url = "";
+            switch (service) {
+                case "google":
+                    url = `https://www.google.com/search?q=${encodeURI(id)}`
+                    break;
+                default:
+                case "javmost":
+                    url = `https://www.javmost.com/tag/${encodeURI(id)}/`
+                    break;
+            }
+
+            window.open(url, '_blank');
+        }
+
+        async function main() {
+            await setup();
+        }
+
+        async function setup() {
+            g.videos = await getVideos();
+        }
+
+        function searchVideo(term) {
+            const options = {
+                shouldSort: true,
+                threshold: 0.6,
+                location: 0,
+                distance: 100,
+                maxPatternLength: 32,
+                minMatchCharLength: 1,
+                tokenize: true,
+                keys: [
+                    "name"
+                ]
+            };
+            const fuse = new Fuse(g.videos, options); // "list" is the item array
+            const results = fuse.search(term);
+
+            const $results = document.getElementById("results");
+            $results.innerHTML = "";
+
+            for (const result of results.slice(0, 50)) {
+                $results.innerHTML += `
+                    <div class="item">
+                        <div class="name">${result.name}</div>
+                        <div class="image">
+                            <img src="${result.image}">
+                        </div>
+                        <div class="buttons">
+                            <button onclick="goTo(this, 'google')">Google</button>
+                            <button onclick="goTo(this, 'javmost')">javmost</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function getVideos() {
+            const res = await fetch("videos.json");
+            const json = await res.json();
+
+            return json;
+        }
+    </script>
+</body>
+
+</html>
